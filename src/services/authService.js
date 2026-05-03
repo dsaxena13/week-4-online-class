@@ -1,9 +1,9 @@
-import User from '../models/User';
-import { createAppError } from '../utils/createAppError';
+import User from '../models/User.js';
+import { createAppError } from '../utils/createAppError.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const register = async (input) => {
+export const register = async (input) => {
     const { email, password } = input;
     // should check if email already exists
     const existingUser = await User.findOne({ email });
@@ -12,10 +12,13 @@ const register = async (input) => {
     }
     const hash = await bcrypt.hash(password, 10);
 
+    // user will be saved into database with hashed password
     const newUser = await User.create({ 
         name: input.name, 
         email, 
         password: hash });
+    
+    // return user data without password
     const output = {
         id: newUser._id,
         name: newUser.name,
@@ -24,7 +27,7 @@ const register = async (input) => {
     return output;
 }
 
-const login = async (input) => {
+export const login = async (input) => {
     const { email, password } = input;
     const user = await User.findOne({ email });
     if (!user) {
@@ -34,9 +37,13 @@ const login = async (input) => {
     if (!isMatch) {
         throw createAppError('Invalid email or password', 401);
     }
+
+    // jwt helps in creating a token that can be used for authentication in subsequent requests
     const token = jwt.sign({ 
-        userId: user._id }, 
-        process.env.JWT_SECRET, { expiresIn: '1h' });
+        userId: user._id }, // Data that goes into the token payload
+        process.env.JWT_SECRET, // Secret key used to sign the token, should be stored in environment variables
+        { expiresIn: '1h' });
+
     const output = {
         id: user._id,
         name: user.name,
@@ -44,9 +51,4 @@ const login = async (input) => {
         token
     }
     return output;
-}
-
-export default {
-    register,
-    login
 }
